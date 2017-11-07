@@ -80,14 +80,13 @@ if (userArgs.reporter === 'teamcity') {
   });
 
   notWhiteListedDeadLinks.then((values) => {
+    if (values.length > 0) {
+      tsm.buildProblem({ description: 'Dead links detected.' });
+    }
     values.forEach(v => tsm.inspection({
       typeId: 'LINK001', message: `Dead link: ${v.link}`, file: v.file, SEVERITY: 'ERROR',
     }));
   });
-
-  if (notWhiteListedDeadLinks.length > 0) {
-    tsm.buildProblem({ description: 'Dead links detected.' });
-  }
 } else {
   whiteListedDeadLinks.then((values) => {
     console.log('whitelisted:');
