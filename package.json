@@ -1,0 +1,45 @@
+{
+  "name": "md-link-checker-teamcity",
+  "version": "0.1.0",
+  "description": "A markdown link checker that integrates with teamcity service messages. ",
+  "main": "index.js",
+  "bin": {
+    "md-link-checker-teamcity": "./index.js"
+  },
+  "scripts": {
+    "lint": "./node_modules/.bin/eslint --format codeframe .",
+    "test": "./node_modules/mocha/bin/mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/michaelgwelch/md-link-checker-teamcity.git"
+  },
+  "keywords": [
+    "markdown",
+    "teamcity",
+    "link",
+    "checker",
+    "reporter"
+  ],
+  "author": "Michael Welch",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/michaelgwelch/md-link-checker-teamcity/issues"
+  },
+  "homepage": "https://github.com/michaelgwelch/md-link-checker-teamcity#readme",
+  "devDependencies": {
+    "eslint": "^4.10.0",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.8.0",
+    "mocha": "^4.0.1"
+  },
+  "dependencies": {
+    "async": "^2.5.0",
+    "colors": "^1.1.2",
+    "globby": "^6.1.0",
+    "lodash": "^4.17.4",
+    "markdown-link-check": "^3.1.4",
+    "minimist": "^1.2.0",
+    "teamcity-service-messages": "git+https://github.com/michaelgwelch/teamcity-service-messages.git#v0.1.9-welch"
+  }
+}
