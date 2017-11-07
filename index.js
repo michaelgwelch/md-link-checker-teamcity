@@ -44,7 +44,7 @@ async function linkCheckFile(file) {
     const allLinks = await markdownLinkCheck(content, opts);
     const deadLinks = allLinks
       .filter(link => link.status === 'dead')
-      .map(l => ({ file, link: l.link, whitelisted: whitelist.indexOf(l.link) > 0 }));
+      .map(l => ({ file, link: l.link, whitelisted: whitelist.indexOf(l.link) >= 0 }));
     return deadLinks;
   } catch (e) {
     console.log(e);
