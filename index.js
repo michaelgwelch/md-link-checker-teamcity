@@ -38,7 +38,7 @@ function markdownLinkCheck(file, opts) {
 
 async function linkCheckFile(file) {
   try {
-    const fullPath = path.join('file:///', cwd, file).replace(/ /g, '\\ ');
+    const fullPath = `file:///'${path.join(cwd, file).replace(/ /g, '\\ ')}`;
     console.log(fullPath);
     const opts = { baseUrl: path.dirname(fullPath) };
     const content = await readFile(file, { encoding: 'utf8' });
