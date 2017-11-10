@@ -95,7 +95,9 @@ if (userArgs.reporter === 'teamcity') {
   });
 
   notWhiteListedDeadLinks.then((values) => {
-    console.log('Bad Links'.red);
+    if (values.length > 0) {
+      console.log('Bad Links'.red);
+    }
     values
       .forEach(value => console.log(`The link '${value.link.red}' in file '${value.file.blue}' could not be reached.`));
   });
