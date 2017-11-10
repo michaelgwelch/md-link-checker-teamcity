@@ -12,8 +12,10 @@ require('colors');
 
 const userArgs = parseArgs(process.argv.slice(2));
 
+const cwd = process.cwd();
+
 /* eslint-disable import/no-dynamic-require */
-const whitelist = (userArgs.whitelist) ? _.map(require(path.join(process.cwd(), userArgs.whitelist)), 'link') : [];
+const whitelist = (userArgs.whitelist) ? _.map(require(path.join(cwd, userArgs.whitelist)), 'link') : [];
 /* eslint-enable import/no-dynamic-require */
 
 const mapLimit = promisify(async.mapLimit);
@@ -36,7 +38,7 @@ function markdownLinkCheck(file, opts) {
 
 async function linkCheckFile(file) {
   try {
-    const fullPath = `file:///Users/cwelchmi/repos/evolution/${file}`;
+    const fullPath = `file:///${path.join(cwd, file)}`;
     const opts = { baseUrl: path.dirname(fullPath) };
     const content = await readFile(file, { encoding: 'utf8' });
     const allLinks = await markdownLinkCheck(content, opts);
