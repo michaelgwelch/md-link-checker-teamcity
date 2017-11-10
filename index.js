@@ -52,13 +52,13 @@ async function linkCheckFile(file) {
   }
 }
 
-const alldeadLinks = mapLimit(files, 10, linkCheckFile)
+const allDeadLinks = mapLimit(files, 10, linkCheckFile)
   .then(r => _.flatten(r))
   .then(values => values.map(value =>
     ({ file: value.file, link: value.link, whitelisted: value.whitelisted })));
 
-const whiteListedDeadLinks = alldeadLinks.then(values => values.filter(v => v.whitelisted));
-const notWhiteListedDeadLinks = alldeadLinks.then(values => values.filter(v => !v.whitelisted));
+const whiteListedDeadLinks = allDeadLinks.then(values => values.filter(v => v.whitelisted));
+const notWhiteListedDeadLinks = allDeadLinks.then(values => values.filter(v => !v.whitelisted));
 
 if (userArgs.reporter === 'teamcity') {
   // Register the potential inspection types
