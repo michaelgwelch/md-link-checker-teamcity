@@ -38,8 +38,8 @@
     "colors": "^1.1.2",
     "globby": "^6.1.0",
     "lodash": "^4.17.4",
-    "markdown-link-check": "^3.1.4",
+    "markdown-link-check": "^3.1.5",
     "minimist": "^1.2.0",
-    "teamcity-service-messages": "git+https://github.com/michaelgwelch/teamcity-service-messages.git#v0.1.9-welch"
+    "teamcity-service-messages": "^0.1.9"
   }
 }
