@@ -38,7 +38,7 @@
     "colors": "^1.1.2",
     "globby": "^6.1.0",
     "lodash": "^4.17.4",
-    "markdown-link-check": "^3.1.5",
+    "markdown-link-check": "^3.1.6",
     "minimist": "^1.2.0",
     "teamcity-service-messages": "^0.1.9"
   }
