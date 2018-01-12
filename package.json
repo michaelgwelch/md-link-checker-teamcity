@@ -1,6 +1,6 @@
 {
   "name": "md-link-checker-teamcity",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A markdown link checker that integrates with teamcity service messages. ",
   "main": "index.js",
   "bin": {
