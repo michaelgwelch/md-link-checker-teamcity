@@ -9,7 +9,11 @@ const _ = require('lodash');
 const path = require('path');
 const tsm = require('teamcity-service-messages');
 const parseArgs = require('minimist');
-require('colors');
+require('colors'); // magic???
+const cp = require('child_process');
+const util = require('util');
+
+const exec = util.promisify(cp.exec);
 
 const userArgs = parseArgs(process.argv.slice(2));
 
@@ -51,6 +55,20 @@ async function linkCheckFile(file) {
     console.log(e);
     return [];
   }
+}
+
+/**
+ * Find all the files that differ from master branch
+ */
+async function getChangedFiles() {
+  const { stdout } = await exec('git diff --name-only master');
+
+  // output will be a list of files: one per line
+
+  return stdout
+    .trim()
+    .split(/\n/)
+    .filter(entry => entry.endsWith('.md'));
 }
 
 const allDeadLinks = mapLimit(files, 10, linkCheckFile)
