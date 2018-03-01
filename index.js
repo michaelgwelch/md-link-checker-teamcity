@@ -109,17 +109,11 @@ async function main() {
       typeId: 'LINK001', message: `Dead link: ${v.link}`, file: v.file, SEVERITY: 'ERROR',
     }));
   } else {
-    if (whiteListedDeadLinks.length > 0) {
-      console.log('whitelisted:');
-    }
     whiteListedDeadLinks
-      .forEach(value => console.log(`The link '${value.link.yellow}' in file '${value.file.green}' could not be reached.`));
+      .forEach(value => console.log(`WARN: '${value.link.yellow}' in file '${value.file.green}' could not be reached but is whitelisted.`));
 
-    if (notWhiteListedDeadLinks.length > 0) {
-      console.log('Bad Links'.red);
-    }
     notWhiteListedDeadLinks
-      .forEach(value => console.log(`The link '${value.link.red}' in file '${value.file.blue}' could not be reached.`));
+      .forEach(value => console.log(`ERROR: '${value.link.red}' in file '${value.file.blue}' could not be reached.`));
   }
 }
 
