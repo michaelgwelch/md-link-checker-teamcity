@@ -9,7 +9,7 @@ const _ = require('lodash');
 const path = require('path');
 const tsm = require('teamcity-service-messages');
 const parseArgs = require('minimist');
-require('colors'); // magic???
+require('colors'); // magic that allows us to use colors in our console output
 const cp = require('child_process');
 const util = require('util');
 
@@ -79,52 +79,48 @@ async function getChangedFiles() {
     .filter(entry => entry.endsWith('.md'));
 }
 
-const allDeadLinks = checkLinksInFiles(allMarkdownFilesPromise);
+async function main() {
+  const allDeadLinks = await checkLinksInFiles(allMarkdownFilesPromise);
 
-const whiteListedDeadLinks = allDeadLinks.then(values => values.filter(v => v.whitelisted));
-const notWhiteListedDeadLinks = allDeadLinks.then(values => values.filter(v => !v.whitelisted));
+  const whiteListedDeadLinks = allDeadLinks.filter(v => v.whitelisted);
+  const notWhiteListedDeadLinks = allDeadLinks.filter(v => !v.whitelisted);
 
-if (userArgs.reporter === 'teamcity') {
-  // Register the potential inspection types
+  if (userArgs.reporter === 'teamcity') {
+    // Register the potential inspection types
 
-  tsm.inspectionType({
-    id: 'LINK001', name: 'no-dead-links', description: 'Reports links that were not reachable.', category: 'Document issues',
-  });
-  tsm.inspectionType({
-    id: 'LINK002',
-    name: 'no-whitelisted-dead-links',
-    description: 'Reports links that were on a whitelist. These are links that we know may not be reachable by an automated build tool. This inspection is just meant as a informational message.',
-    category: 'Document issues',
-  });
+    tsm.inspectionType({
+      id: 'LINK001', name: 'no-dead-links', description: 'Reports links that were not reachable.', category: 'Document issues',
+    });
+    tsm.inspectionType({
+      id: 'LINK002',
+      name: 'no-whitelisted-dead-links',
+      description: 'Reports links that were on a whitelist. These are links that we know may not be reachable by an automated build tool. This inspection is just meant as a informational message.',
+      category: 'Document issues',
+    });
 
-  whiteListedDeadLinks.then((values) => {
-    values.forEach(v => tsm.inspection({
+    whiteListedDeadLinks.forEach(v => tsm.inspection({
       typeId: 'LINK002', message: `Whitelisted dead link: ${v.link}`, file: v.file, SEVERITY: 'INFO',
     }));
-  });
 
-  notWhiteListedDeadLinks.then((values) => {
-    if (values.length > 0) {
+    if (notWhiteListedDeadLinks.length > 0) {
       tsm.buildProblem({ description: 'Dead links detected.' });
     }
-    values.forEach(v => tsm.inspection({
+    notWhiteListedDeadLinks.forEach(v => tsm.inspection({
       typeId: 'LINK001', message: `Dead link: ${v.link}`, file: v.file, SEVERITY: 'ERROR',
     }));
-  });
-} else {
-  whiteListedDeadLinks.then((values) => {
-    if (values.length > 0) {
+  } else {
+    if (whiteListedDeadLinks.length > 0) {
       console.log('whitelisted:');
     }
-    values
+    whiteListedDeadLinks
       .forEach(value => console.log(`The link '${value.link.yellow}' in file '${value.file.green}' could not be reached.`));
-  });
 
-  notWhiteListedDeadLinks.then((values) => {
-    if (values.length > 0) {
+    if (notWhiteListedDeadLinks.length > 0) {
       console.log('Bad Links'.red);
     }
-    values
+    notWhiteListedDeadLinks
       .forEach(value => console.log(`The link '${value.link.red}' in file '${value.file.blue}' could not be reached.`));
-  });
+  }
 }
+
+main();
