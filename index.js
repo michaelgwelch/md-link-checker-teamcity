@@ -58,8 +58,7 @@ async function checkLinksInFile(file) {
 }
 
 // files is a promise<[string]>
-async function checkLinksInFiles(filesToCheckPromise) {
-  const filesToCheck = await filesToCheckPromise;
+async function checkLinksInFiles(filesToCheck) {
   const result = await mapLimit(filesToCheck, 10, checkLinksInFile);
   return _.flatten(result).map(value =>
     ({ file: value.file, link: value.link, whitelisted: value.whitelisted }));
@@ -80,7 +79,11 @@ async function getChangedFiles() {
 }
 
 async function main() {
-  const allDeadLinks = await checkLinksInFiles(allMarkdownFilesPromise);
+  const allMarkdownFiles = await allMarkdownFilesPromise;
+  const changedMarkdownFiles = await getChangedFiles();
+
+  const filesToCheck = userArgs.changed ? changedMarkdownFiles : allMarkdownFiles;
+  const allDeadLinks = await checkLinksInFiles(filesToCheck);
 
   const whiteListedDeadLinks = allDeadLinks.filter(v => v.whitelisted);
   const notWhiteListedDeadLinks = allDeadLinks.filter(v => !v.whitelisted);
