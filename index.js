@@ -41,7 +41,7 @@ function markdownLinkCheck(file, opts) {
   });
 }
 
-async function linkCheckFile(file) {
+async function checkLinksInFile(file) {
   try {
     const fullPath = `file:///${path.join(cwd, file)}`;
     const opts = { baseUrl: path.dirname(fullPath) };
@@ -55,6 +55,12 @@ async function linkCheckFile(file) {
     console.log(e);
     return [];
   }
+}
+
+async function checkLinksInFiles(files) {
+  const result = await mapLimit(files, 10, checkLinksInFile);
+  return _.flatten(result).map(value =>
+    ({ file: value.file, link: value.link, whitelisted: value.whitelisted }));
 }
 
 /**
@@ -71,10 +77,7 @@ async function getChangedFiles() {
     .filter(entry => entry.endsWith('.md'));
 }
 
-const allDeadLinks = mapLimit(files, 10, linkCheckFile)
-  .then(r => _.flatten(r))
-  .then(values => values.map(value =>
-    ({ file: value.file, link: value.link, whitelisted: value.whitelisted })));
+const allDeadLinks = checkLinksInFiles(files);
 
 const whiteListedDeadLinks = allDeadLinks.then(values => values.filter(v => v.whitelisted));
 const notWhiteListedDeadLinks = allDeadLinks.then(values => values.filter(v => !v.whitelisted));
