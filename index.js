@@ -27,7 +27,7 @@ const mapLimit = promisify(async.mapLimit);
 
 const globPatterns = ['**/*.md', '!**/*icd*.md', '!node_modules/**/*.md'];
 
-const files = globby.sync(globPatterns);
+const allMarkdownFilesPromise = globby(globPatterns);
 
 function markdownLinkCheck(file, opts) {
   return new Promise((resolve, reject) => {
@@ -57,8 +57,10 @@ async function checkLinksInFile(file) {
   }
 }
 
-async function checkLinksInFiles(files) {
-  const result = await mapLimit(files, 10, checkLinksInFile);
+// files is a promise<[string]>
+async function checkLinksInFiles(filesToCheckPromise) {
+  const filesToCheck = await filesToCheckPromise;
+  const result = await mapLimit(filesToCheck, 10, checkLinksInFile);
   return _.flatten(result).map(value =>
     ({ file: value.file, link: value.link, whitelisted: value.whitelisted }));
 }
@@ -77,7 +79,7 @@ async function getChangedFiles() {
     .filter(entry => entry.endsWith('.md'));
 }
 
-const allDeadLinks = checkLinksInFiles(files);
+const allDeadLinks = checkLinksInFiles(allMarkdownFilesPromise);
 
 const whiteListedDeadLinks = allDeadLinks.then(values => values.filter(v => v.whitelisted));
 const notWhiteListedDeadLinks = allDeadLinks.then(values => values.filter(v => !v.whitelisted));
