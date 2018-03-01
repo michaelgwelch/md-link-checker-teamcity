@@ -9,7 +9,11 @@ const _ = require('lodash');
 const path = require('path');
 const tsm = require('teamcity-service-messages');
 const parseArgs = require('minimist');
-require('colors');
+require('colors'); // magic that allows us to use colors in our console output
+const cp = require('child_process');
+const util = require('util');
+
+const exec = util.promisify(cp.exec);
 
 const userArgs = parseArgs(process.argv.slice(2));
 
@@ -23,7 +27,7 @@ const mapLimit = promisify(async.mapLimit);
 
 const globPatterns = ['**/*.md', '!**/*icd*.md', '!node_modules/**/*.md'];
 
-const files = globby.sync(globPatterns);
+const allMarkdownFilesPromise = globby(globPatterns);
 
 function markdownLinkCheck(file, opts) {
   return new Promise((resolve, reject) => {
@@ -37,7 +41,7 @@ function markdownLinkCheck(file, opts) {
   });
 }
 
-async function linkCheckFile(file) {
+async function checkLinksInFile(file) {
   try {
     const fullPath = `file:///${path.join(cwd, file)}`;
     const opts = { baseUrl: path.dirname(fullPath) };
@@ -53,55 +57,67 @@ async function linkCheckFile(file) {
   }
 }
 
-const allDeadLinks = mapLimit(files, 10, linkCheckFile)
-  .then(r => _.flatten(r))
-  .then(values => values.map(value =>
-    ({ file: value.file, link: value.link, whitelisted: value.whitelisted })));
+// files is a promise<[string]>
+async function checkLinksInFiles(filesToCheck) {
+  const result = await mapLimit(filesToCheck, 10, checkLinksInFile);
+  return _.flatten(result).map(value =>
+    ({ file: value.file, link: value.link, whitelisted: value.whitelisted }));
+}
 
-const whiteListedDeadLinks = allDeadLinks.then(values => values.filter(v => v.whitelisted));
-const notWhiteListedDeadLinks = allDeadLinks.then(values => values.filter(v => !v.whitelisted));
+/**
+ * Find all the files that differ from master branch
+ */
+async function getChangedFiles() {
+  const { stdout } = await exec('git diff --name-only master');
 
-if (userArgs.reporter === 'teamcity') {
-  // Register the potential inspection types
+  // output will be a list of files: one per line
 
-  tsm.inspectionType({
-    id: 'LINK001', name: 'no-dead-links', description: 'Reports links that were not reachable.', category: 'Document issues',
-  });
-  tsm.inspectionType({
-    id: 'LINK002',
-    name: 'no-whitelisted-dead-links',
-    description: 'Reports links that were on a whitelist. These are links that we know may not be reachable by an automated build tool. This inspection is just meant as a informational message.',
-    category: 'Document issues',
-  });
+  return stdout
+    .trim()
+    .split(/\n/)
+    .filter(entry => entry.endsWith('.md'));
+}
 
-  whiteListedDeadLinks.then((values) => {
-    values.forEach(v => tsm.inspection({
+async function main() {
+  const allMarkdownFiles = await allMarkdownFilesPromise;
+  const changedMarkdownFiles = await getChangedFiles();
+
+  const filesToCheck = userArgs.changed ? changedMarkdownFiles : allMarkdownFiles;
+  const allDeadLinks = await checkLinksInFiles(filesToCheck);
+
+  const whiteListedDeadLinks = allDeadLinks.filter(v => v.whitelisted);
+  const notWhiteListedDeadLinks = allDeadLinks.filter(v => !v.whitelisted);
+
+  if (userArgs.reporter === 'teamcity') {
+    // Register the potential inspection types
+
+    tsm.inspectionType({
+      id: 'LINK001', name: 'no-dead-links', description: 'Reports links that were not reachable.', category: 'Document issues',
+    });
+    tsm.inspectionType({
+      id: 'LINK002',
+      name: 'no-whitelisted-dead-links',
+      description: 'Reports links that were on a whitelist. These are links that we know may not be reachable by an automated build tool. This inspection is just meant as a informational message.',
+      category: 'Document issues',
+    });
+
+    whiteListedDeadLinks.forEach(v => tsm.inspection({
       typeId: 'LINK002', message: `Whitelisted dead link: ${v.link}`, file: v.file, SEVERITY: 'INFO',
     }));
-  });
 
-  notWhiteListedDeadLinks.then((values) => {
-    if (values.length > 0) {
+    if (notWhiteListedDeadLinks.length > 0) {
       tsm.buildProblem({ description: 'Dead links detected.' });
     }
-    values.forEach(v => tsm.inspection({
+    notWhiteListedDeadLinks.forEach(v => tsm.inspection({
       typeId: 'LINK001', message: `Dead link: ${v.link}`, file: v.file, SEVERITY: 'ERROR',
     }));
-  });
-} else {
-  whiteListedDeadLinks.then((values) => {
-    if (values.length > 0) {
-      console.log('whitelisted:');
-    }
-    values
-      .forEach(value => console.log(`The link '${value.link.yellow}' in file '${value.file.green}' could not be reached.`));
-  });
+  } else {
+    whiteListedDeadLinks
+      .forEach(value => console.log(`WARN: '${value.link.yellow}' in file '${value.file.green}' could not be reached but is whitelisted.`));
 
-  notWhiteListedDeadLinks.then((values) => {
-    if (values.length > 0) {
-      console.log('Bad Links'.red);
-    }
-    values
-      .forEach(value => console.log(`The link '${value.link.red}' in file '${value.file.blue}' could not be reached.`));
-  });
+    notWhiteListedDeadLinks
+      .forEach(value => console.log(`ERROR: '${value.link.red}' in file '${value.file.blue}' could not be reached.`));
+  }
 }
+
+main();
