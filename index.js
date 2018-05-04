@@ -65,10 +65,12 @@ async function checkLinksInFiles(filesToCheck) {
 }
 
 /**
- * Find all the files that differ from master branch
+ * Find all the files that differ from specified branch
  */
-async function getChangedFiles() {
-  const { stdout } = await exec('git diff --name-only master');
+async function getChangedFiles(base_branch) {
+  // the diff-filter switch is used to exclude deleted files.
+  // obviously we can't check links in a file that has been deleted.
+  const { stdout } = await exec(`git diff --name-only --diff-filter=d ${base_branch}`);
 
   // output will be a list of files: one per line
 
@@ -78,9 +80,21 @@ async function getChangedFiles() {
     .filter(entry => entry.endsWith('.md'));
 }
 
+// The changed switch can optionally take the name of a base branch
+// This base branch is used as the base in the comparison to see if
+// anything changed. If no branch is specified, it defaults to master
+function getBaseBranch(changed) {
+  const defaultBranch = 'master';
+  if (!changed) return defaultBranch;
+  if (changed === true) return defaultBranch;
+  return changed;
+}
+
 async function main() {
+  const base_branch = getBaseBranch(userArgs.changed);
+
   const allMarkdownFiles = await allMarkdownFilesPromise;
-  const changedMarkdownFiles = await getChangedFiles();
+  const changedMarkdownFiles = await getChangedFiles(base_branch);
 
   const filesToCheck = userArgs.changed ? changedMarkdownFiles : allMarkdownFiles;
   const allDeadLinks = await checkLinksInFiles(filesToCheck);
